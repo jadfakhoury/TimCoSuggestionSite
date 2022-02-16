@@ -35,7 +35,7 @@ public class MongoSuggestionData : ISuggestionData
     public async Task<List<SuggestionModel>> GetAllApprovedSuggestions()
     {
         var output = await GetAllSuggestions();
-        return output.Where(x => x.ApprovedForRelease).ToList();
+        return output.Where(x => x.ApprovedForRelease == true).ToList();
     }
 
     public async Task<SuggestionModel> GetSuggestion(string id)

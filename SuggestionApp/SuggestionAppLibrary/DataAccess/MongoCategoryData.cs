@@ -23,7 +23,7 @@ public class MongoCategoryData : ICategoryData
             var results = await _categories.FindAsync(_ => true);
             output = results.ToList();
 
-            _cache.Set(CacheName, TimeSpan.FromDays(1));
+            _cache.Set(CacheName, output, TimeSpan.FromDays(1));
         }
         return output;
     }
