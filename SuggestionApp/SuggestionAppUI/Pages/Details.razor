@@ -1,6 +1,8 @@
 ﻿@page "/Details/{Id}"
 @inject ISuggestionData suggestionData
 @inject NavigationManager navManager
+@inject IUserData userData
+@inject AuthenticationStateProvider authProvider
 
 
 <h1>Suggestion Details</h1>
@@ -11,7 +13,7 @@
         {
             <div>
                 <div>
-                    <div>
+                    <div @onclick="VoteUp">
                         <div>@GetUpvoteTopText()</div>
                         <span class="oi oi-caret-top"></span>
                         <div>@GetUpvoteBottomText()</div>
@@ -37,21 +39,21 @@
 </div>
 
 
-@if(suggestion?.SuggestionStatus is not null)
+@if (suggestion?.SuggestionStatus is not null)
 {
-   <div>
     <div>
-        <div></div>
         <div>
+            <div></div>
             <div>
-                @suggestion.SuggestionStatus.StatusName
-            </div>
-            <div>
-                 @((MarkupString)suggestion.OwnerNotes)
+                <div>
+                    @suggestion.SuggestionStatus.StatusName
+                </div>
+                <div>
+                    @((MarkupString)suggestion.OwnerNotes)
+                </div>
             </div>
         </div>
     </div>
-</div>
 }
 
 
@@ -64,10 +66,34 @@
     public string Id { get; set; }
 
     private SuggestionModel suggestion;
+    private UserModel loggedInUser;
 
     protected async override Task OnInitializedAsync()
     {
         suggestion = await suggestionData.GetSuggestion(Id);
+        loggedInUser = await authProvider.GetUserFromAuth(userData);
+    }
+
+    private async Task VoteUp()
+    {
+        if (loggedInUser is not null)
+        {
+            if (suggestion.Author.Id != loggedInUser.Id) //Can't upvote on your own suggestion
+            {
+                //This line will try to upvote if user has already upvoted it will
+                //return false and the upvote will be removed or else it will return true
+                //and the upvote will be added to the suggestion.
+                if (suggestion.UserVotes.Add(loggedInUser.Id) == false)
+                {
+                    suggestion.UserVotes.Remove(loggedInUser.Id);
+                }
+            }
+            await suggestionData.UpvoteSuggestion(suggestion.Id, loggedInUser.Id);
+        }
+        else
+        {
+            navManager.NavigateTo("/MicrosoftIdentity/Account/SignIn", true);
+        }
     }
 
     private void ClosePage()
@@ -83,7 +109,14 @@
         }
         else
         {
-            return "Click To";
+            if (suggestion.Author.Id == loggedInUser?.Id)
+            {
+                return "Awaiting";
+            }
+            else
+            {
+                return "Click To";
+            }
         }
     }
 
